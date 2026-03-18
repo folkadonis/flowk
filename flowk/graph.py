@@ -145,3 +145,30 @@ class Graph:
         """Visualize graph structure natively in terminal."""
         from flowk.visualization import show_graph
         show_graph(self)
+
+    def as_node(self, state_key: str = None) -> Callable:
+        """
+        Wraps this entire graph into a single callable Node function.
+        Allows for Graph Composition (Sub-graphs).
+        
+        Args:
+            state_key: If provided, the sub-graph will operate only on 
+                       state[state_key] instead of the entire parent state.
+        """
+        async def sub_graph_node(input_data: Any, state: dict):
+            # Resolve the state to pass to the sub-graph
+            sub_state = state.get(state_key, {}) if state_key else state
+            
+            # Execute the sub-graph
+            # We use arun to support async execution natively
+            result = await self.arun(input_data, state=sub_state)
+            
+            # If we scoped the state, write it back to the parent
+            if state_key:
+                state[state_key] = sub_state
+                
+            return result
+        
+        # Give the function a descriptive name for the visualization and logs
+        sub_graph_node.__name__ = f"SubGraph_{id(self)}"
+        return sub_graph_node

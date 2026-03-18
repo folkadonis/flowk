@@ -172,15 +172,49 @@ Encountering bugs in a complex run? Flowk saves runs by default!
 - To sequentially replay historic traces visually in terminal, grab the `run_id` outputted from any run:  
   `g.replay("run-123-abc")`
 
+### 📦 Graph Composition (Sub-Graphs)
+Flowk allows you to nest entire graphs into other graphs, enabling you to build complex multi-agent systems where each "Node" is itself a full workflow.
+```python
+research_subgraph = Graph()
+# ... build your research workflow ...
+
+main_graph = Graph()
+# Use it as a node with isolated state scoping!
+research_node = research_subgraph.as_node(state_key="research_data")
+main_graph.connect(input_node, research_node)
+```
+
+### 🗄️ Scalable Redis Persistence
+For enterprise applications requiring distributed state, Flowk now supports Redis natively as a checkpointing backend.
+```python
+g = Graph(checkpoint_db="redis://localhost:6379/0")
+```
+
 ---
 
 ## 🧩 Plugins (Extensions)
-
-Under the hood, flow runs evaluate through hooks (`on_run_start`, `on_node_start`, `on_node_end`, `on_run_end`). Check `flowk.plugins.base.Plugin` to extend the system yourself—like intercepting runs to store trace files via `FileStoragePlugin`!
+Flowk includes native plugins for popular LLM providers that capture token usage and costs automatically:
+- `OpenAIPlugin`
+- `AnthropicPlugin`
 
 ```python
-from flowk.plugins.base import PluginManager
-from flowk.plugins.storage import FileStoragePlugin
-
-PluginManager.register(FileStoragePlugin("server_logs.jsonl"))
+from flowk.plugins.llm import OpenAIPlugin
+PluginManager.register(OpenAIPlugin(model="gpt-4o"))
 ```
+
+---
+
+## 📦 Installation
+Install core:
+```bash
+pip install flowk
+```
+
+Install with optional enterprise features:
+```bash
+pip install "flowk[openai,redis]"
+```
+
+---
+
+## 🛠️ Core Concepts
