@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "flowk"
 version = "0.1.0"
 authors = [
-  { name="Folk Nallathambi", email="your-email@example.com" },
+  { name="Folk Nallathambi", email="folkadonis7@gmail.com" },
 ]
 description = "A lightweight, modular, and developer-first workflow orchestration engine for AI/LLM pipelines."
 readme = "README.md"
