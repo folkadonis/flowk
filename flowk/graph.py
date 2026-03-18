@@ -7,13 +7,18 @@ class Graph:
     """
     Core graph orchestrator holding nodes, connections, and metadata.
     """
-    def __init__(self, state_schema=None):
+    def __init__(self, state_schema=None, checkpoint_db: str = None):
         self.nodes: Dict[str, Node] = {}
         self.edges: Dict[str, List[str]] = {}
         self.entrypoint: Optional[str] = None
         self.state_schema = state_schema
         self.compiled = False
         self.interrupt_before = []
+        self.checkpoint_db = checkpoint_db
+        
+        if checkpoint_db:
+            from flowk.memory import MemoryStore
+            MemoryStore.configure(checkpoint_db)
 
     def node(self, retries: int = 0, fallback: Optional[Callable] = None):
         """Decorator to register a function as a Graph node."""

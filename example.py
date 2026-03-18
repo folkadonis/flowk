@@ -1,13 +1,21 @@
 import time
+import json
+from pydantic import BaseModel, Field
 from flowk import Graph
 
-g = Graph()
+# 1. Define a strict State Schema using Pydantic
+class GraphSchema(BaseModel):
+    category: str = "general"
+    history: list[str] = Field(default_factory=list)
+    original_text: str = ""
+
+# 2. Initialize Graph with Schema and SQLite Persistence
+g = Graph(state_schema=GraphSchema, checkpoint_db="flowk_memory.db")
 
 @g.node(retries=2)
 def parse_input(text: str, state: dict):
-    history = state.get("history", [])
-    history.append(text)
-    state["history"] = history
+    # This automatically tracks history across execution runs!
+    state["history"].append(text)
     state["original_text"] = text
     return text.strip().lower()
 
