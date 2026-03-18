@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowk"
+version = "0.1.0"
+authors = [
+  { name="Folk Nallathambi", email="your-email@example.com" },
+]
+description = "A lightweight, modular, and developer-first workflow orchestration engine for AI/LLM pipelines."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+    "pydantic>=2.0.0" # Required for V2 Native State Validation Features
+]
+
+[project.urls]
+"Homepage" = "https://github.com/folkadonis/flowk"
+"Bug Tracker" = "https://github.com/folkadonis/flowk/issues"
