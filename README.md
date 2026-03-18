@@ -1,6 +1,11 @@
 # Flowk 🌊
 
-**Flowk** is a lightweight, high-performance workflow orchestration engine specifically designed for AI and LLM pipelines. It offers a simpler, developer-first alternative to complex frameworks while providing first-class support for complex routing, shared state memory, observability, and debugging.
+[![PyPI version](https://img.shields.io/pypi/v/flowk.svg)](https://pypi.org/project/flowk/)
+[![Python](https://img.shields.io/pypi/pyversions/flowk.svg)](https://pypi.org/project/flowk/)
+[![CI](https://github.com/folkadonis/flowk/actions/workflows/python-package.yml/badge.svg)](https://github.com/folkadonis/flowk/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Flowk** is a lightweight, high-performance workflow orchestration engine specifically designed for AI and LLM pipelines. It offers a simpler, developer-first alternative to complex frameworks like LangGraph, with native support for async execution, parallel DAGs, Pydantic state validation, conditional routing, human-in-the-loop interrupts, session memory, SQLite checkpointing, and real-time streaming — all in pure Python.
 
 ---
 
@@ -11,6 +16,24 @@
 - **Stepping & Time Travel:** Pausable execution steps and total trace replay capabilities.
 - **Telemetry & Visualization:** Live terminal tracking, cost metric emulation, and highly readable CLI flow rendering.
 - **Pluggable Architecture:** Tap into lifecycle hooks using Plugins effortlessly.
+
+---
+
+## 📦 Installation
+
+Install Flowk directly from PyPI:
+```bash
+pip install flowk
+```
+
+Or install the latest development version from GitHub:
+```bash
+pip install git+https://github.com/folkadonis/flowk.git
+```
+
+### Requirements
+- Python ≥ 3.8
+- `pydantic ≥ 2.0.0` (installed automatically)
 
 ---
 
