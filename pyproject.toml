@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowk"
-version = "0.2.0"
+version = "0.3.0.dev1"
 authors = [
   { name="Folk Nallathambi", email="folkadonis7@gmail.com" },
 ]
@@ -19,8 +19,22 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "pydantic>=2.0.0" # Required for V2 Native State Validation Features
+    "pydantic>=2.0.0"
 ]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.10.0"]
+redis = ["redis>=5.0.0"]
+api = ["fastapi>=0.110.0", "uvicorn>=0.28.0"]
+ui = ["streamlit>=1.30.0"]
+dev = ["pytest>=7.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.scripts]
+flowk = "flowk.cli:main"
 
 [project.urls]
 "Homepage" = "https://github.com/folkadonis/flowk"
