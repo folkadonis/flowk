@@ -26,6 +26,15 @@ dependencies = [
 openai = ["openai>=1.0.0"]
 anthropic = ["anthropic>=0.10.0"]
 redis = ["redis>=5.0.0"]
+api = ["fastapi>=0.110.0", "uvicorn>=0.28.0"]
+ui = ["streamlit>=1.30.0"]
+dev = ["pytest>=7.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.scripts]
+flowk = "flowk.cli:main"
 
 [project.urls]
 "Homepage" = "https://github.com/folkadonis/flowk"

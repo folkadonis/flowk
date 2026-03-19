@@ -1,220 +1,215 @@
 # Flowk 🌊
 
-
-
 [![PyPI version](https://img.shields.io/pypi/v/flowk.svg)](https://pypi.org/project/flowk/)
 [![Python](https://img.shields.io/pypi/pyversions/flowk.svg)](https://pypi.org/project/flowk/)
 [![CI](https://github.com/folkadonis/flowk/actions/workflows/python-package.yml/badge.svg)](https://github.com/folkadonis/flowk/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Flowk** is a lightweight, high-performance workflow orchestration engine specifically designed for AI and LLM pipelines. It offers a simpler, developer-first alternative to complex frameworks like LangGraph, with native support for async execution, parallel DAGs, Pydantic state validation, conditional routing, human-in-the-loop interrupts, session memory, SQLite checkpointing, and real-time streaming — all in pure Python.
+**Flowk** is a lightweight, high-performance workflow orchestration engine specifically designed for AI and LLM pipelines. It offers a simpler, developer-first alternative to complex frameworks like LangGraph. 
+
+Everything you need to build Enterprise Agentic Workflows is packed into pure, readable Python: async execution, dynamic routing, CLI visualizers, SQLite/Redis time-travel, Pydantic type-safety, API deployments, streaming, and a local Observability UI.
 
 ---
 
-## 🚀 Key Features
-- **Extremely Simple API:** Turn standard Python functions into executable graph nodes seamlessly.
-- **Node Retries & Fallbacks:** Built-in resilience out-of-the-box.
-- **Dynamic Routing:** Direct your execution paths dynamically on the fly based on outputs.
-- **Stepping & Time Travel:** Pausable execution steps and total trace replay capabilities.
-- **Telemetry & Visualization:** Live terminal tracking, cost metric emulation, and highly readable CLI flow rendering.
-- **Pluggable Architecture:** Tap into lifecycle hooks using Plugins effortlessly.
+## 🚀 All Features
+
+### Core Execution
+- **Extremely Simple API:** Turn standard Python functions into executable graph nodes effortlessly.
+- **Node Resiliency:** Configure Node retries, timeouts, and fallback policies automatically (`@g.node(retries=3)`).
+- **Standard Routing:** Route branch paths explicitly using standard Python functions (`g.route()`).
+- **🛡️ Type-Safety:** Graph states are strictly validated upon every transition using `Pydantic`.
+- **⚡ Async & Streaming:** Natively await APIs and stream real-time events (`g.astream()`).
+- **Parallel Fan-Out:** Split a node into three; Flowk natively runs them exactly concurrently via `asyncio.gather`.
+
+### Intelligence
+- **🧠 Zero-Boilerplate Auto-Routing:** Eliminate `if/else` logic by letting OpenAI/Anthropic pick your exact graph branches using strictly validated zero-shot classification (`@g.llm_router`).
+- **📦 Multi-Agent Composition:** Build nested agent networks by packaging entire sub-graphs as natively executable Nodes (`g.as_node()`).
+
+### Developer Experience & Tooling
+- **🛑 Human-in-the-Loop:** Set breakpoints to pause execution and later resume the exact thread stacks.
+- **🚀 1-Click API Deployment:** Turn any Flowk `.py` into a fully typed FastAPI instance in milliseconds (`g.serve()`).
+- **Terminal Visualization:** Render beautiful CLI graphs of your execution layout (`g.show()`).
+- **Time Travel Replays:** Encounter a bug? Flowk traces everything. Replay historical executions in debug mode (`g.replay()`).
+- **📊 Observability Dashboard:** Track sessions and modify global Graph context visually through the local Streamlit dashboard (`flowk ui`).
+- **🧩 Pluggable Metrics:** Hook models (e.g. OpenAIPlugin) into `MetricsRegistry` to precisely track token consumption and cost.
 
 ---
 
 ## 📦 Installation
 
-Install Flowk directly from PyPI:
+Flowk is modular by design.
+
 ```bash
+# Core execution engine
 pip install flowk
-```
 
-Or install the latest development version from GitHub:
-```bash
-pip install git+https://github.com/folkadonis/flowk.git
-```
+# Add-ons:
+pip install "flowk[api]"    # 1-Click FastAPI Deployment
+pip install "flowk[ui]"     # Streamlit Observability Dashboard
+pip install "flowk[llm]"    # Auto-Router & Token Metrics
+pip install "flowk[redis]"  # Distributed Persistence
 
-### Requirements
-- Python ≥ 3.8
-- `pydantic ≥ 2.0.0` (installed automatically)
-
----
-
-## 🛠️ Core Concepts
-
-### 1. The Graph
-The `Graph` is the brain of Flowk. It wires up nodes sequentially or through condition-based router intersections:
-```python
-from flowk import Graph
-g = Graph()
-```
-
-### 2. Nodes & State
-Nodes are just typical Python functions decorated with `@g.node()`. An internal `GraphState` mutable dictionary is implicitly available across your pipeline.
-
-```python
-# Pass `state` as an argument to read/write shared data across the lifecycle map
-@g.node(retries=3)
-def prepare_prompt(input_text: str, state: dict):
-    state["original_query"] = input_text
-    return input_text.upper()
-```
-
-### 3. Connections
-Bind nodes synchronously. The `Graph` auto-detects the first configured node as the entrypoint. All data returned from Node A automatically gets piped into Node B as the `input_text`.
-
-```python
-g.connect(prepare_prompt, call_llm)
-```
-
-### 4. Routing (Conditional Branching)
-When execution forks depend on context (e.g., standard request vs. priority request), use `g.route()`.
-```python
-def check_priority(result_from_previous_node: str):
-    return "fast" if "URGENT" in result_from_previous_node else "standard"
-
-# Map condition strings to actual handling Nodes
-router_node = g.route(check_priority, {
-    "fast": priority_handler_node,
-    "standard": normal_handler_node
-})
-
-g.connect(prepare_prompt, router_node)
+# Install Everything
+pip install "flowk[all]"
 ```
 
 ---
 
-## 🔍 Tooling & Observability
+## ⚡ Quick Start
 
-Flowk ships with beautiful tooling crafted identically for both fast prototyping and robust production monitoring. 
-
-### Visualizing Graphs
-Check exactly how your configuration looks using `g.show()`.
-```text
-==================================================
-📊 FLOWK EXECUTION FLOW
-==================================================
-
-[ prepare_prompt ]
-  │
-  ▼
-⟪ priority_check ⟫ (Router)
-  │
-  ├─[fast]──────► [ priority_handler ]
-  │                 │
-  │                 ▼
-  │               [ cleanup ]
-  │
-  └─[standard]──► [ standard_handler ]
-                    │
-                    ▼
-                  [ cleanup ] 🔄 (already visited)
-
-==================================================
-```
-
-### Metrics Tracking
-Built-in timing tracking per node alongside mock LLM tracking usage:
-```python
-g.run("Hello!")
-
-from flowk import MetricsRegistry
-print(MetricsRegistry.get_summary())
-```
-
-### 🧠 Session Memory Management
-Flowk supports native execution memory persistence across multiple `.run()` calls via the `session_id` parameter. This is critically useful for multi-turn chat workflows where the LLM needs to continually append messages to the `GraphState` instead of wiping the slate clean!
+Building your first AI agent pipeline with Flowk takes less than a minute.
 
 ```python
-# Turns persist data appended into state automatically
-r1 = g.run("Hello", session_id="user_john")
-r2 = g.run("Are you there?", session_id="user_john")
-
-r3_anon = g.run("Who am I?") # Anonymous runs use empty states
-```
-
-### ⚡ Async, Streaming, and Parallel Execution (v2)
-Flowk utilizes high-performance asynchronous primitives to match enterprise scale:
-- Define any node as `async def` and Flowk natively awaits it without blocking the thread pool.
-- Use `g.arun()` for standard async resolution.
-- Broadcast real-time node outputs manually using `async for event in g.astream(...)`. This is extremely optimal for mapping LLM outputs into WebSocket frontends!
-- **Fan-Out Parallelism:** If a node splits into multiple separate nodes, Flowk executes all concurrent branches exactly concurrently using `asyncio.gather`. 
-
-### 🛑 Human-in-The-Loop (Breakpoints)
-Need a human to review an action before it commits to a database? Interrupt the graph!
-```python
-# 1. Compile the graph with a breakpoint
-g.compile(interrupt_before=["commit_to_database"])
-
-# 2. Execution will stop and exit when reaching the node
-for event in g.astream(input_data, session_id="user_1"):
-    if event["type"] == "interrupt":
-        print("Waiting for human...")
-        
-# 3. Later, resume using the exact same session_id!
-g.arun(None, session_id="user_1")
-```
-
-### 🛡️ Pydantic Safe-State Validation
-Never let a silent property typo crash a 20-minute LLM pipeline again. Wrap your shared state in a Pydantic schema:
-```python
+import asyncio
 from pydantic import BaseModel
+from flowk import Graph
+
+# 1. Define strict state
 class AgentState(BaseModel):
-    messages: list
-    cost: float
+    query: str
+    processed: bool = False
 
 g = Graph(state_schema=AgentState)
-# Flowk will validate `AgentState(**state)` between EVERY node execution.
+
+# 2. Define Nodes
+@g.node(retries=3)  # Built-in resiliency
+async def intake(query: str, state: dict):
+    state["query"] = query
+    print(f"📥 Received: {query}")
+    return query
+
+@g.node()
+async def agent(query: str, state: dict):
+    state["processed"] = True
+    print("🤖 Processing context...")
+    return f"Processed Output for {query}"
+
+# 3. Connect nodes
+g.connect(intake, agent)
+
+# 4. View Architecture
+g.show()
+
+# 5. Run async pipeline
+if __name__ == "__main__":
+    result = asyncio.run(g.arun("Calculate the speed of light."))
 ```
 
-### Debug & Time Travel
-Encountering bugs in a complex run? Flowk saves runs by default!
-- To run with highly verbose sequential logging, replace `g.run()` with `g.debug()`.
-- To sequentially replay historic traces visually in terminal, grab the `run_id` outputted from any run:  
-  `g.replay("run-123-abc")`
+---
 
-### 📦 Graph Composition (Sub-Graphs)
-Flowk allows you to nest entire graphs into other graphs, enabling you to build complex multi-agent systems where each "Node" is itself a full workflow.
+## 🧠 Zero-Boilerplate LLM Auto-Routing
+
+Why write manual `if/else` logic when LLMs can intelligently route workflows based directly on your docstrings? Flowk handles the prompts and the deterministic structured outputs for you.
+
 ```python
-research_subgraph = Graph()
-# ... build your research workflow ...
+@g.llm_router(
+    model="gpt-4o-mini",
+    targets={
+        "math_node": "Use this if the query contains numbers or equations.",
+        "search_node": "Use this if the user asks for real-time news."
+    }
+)
+def supervisor_router(state: dict):
+    return state.get("query", "")
 
+g.connect(parse_input, supervisor_router) 
+```
+
+---
+
+## 🚀 1-Click API Gen (FastAPI)
+
+Skip writing API boilerplate. Flowk automatically converts your Graph and Pydantic models into a fully validated FastAPI instance with `/docs`, `/invoke`, and `/stream`.
+
+```python
+# Launch app
+g = Graph(state_schema=MyState)
+g.connect(A, B)
+
+if __name__ == "__main__":
+    g.serve(host="0.0.0.0", port=8000)
+```
+
+Invoke your pipeline instantaneously:
+```bash
+curl -X POST "http://localhost:8000/invoke" \
+     -H "Content-Type: application/json" \
+     -d '{"initial_state": {"user_id": 123}, "input_data": "Search for X"}'
+```
+
+---
+
+## 🛑 Human-in-The-Loop (Interrupts)
+
+Create breakpoints in your workflows. Execution suspends gracefully to allow human review (e.g. paying an invoice), letting you resurrect the session precisely where you left off.
+
+```python
+# Set visual breakpoint
+g.compile(interrupt_before=["commit_payment_node"])
+
+# Run pipeline until suspended
+for event in g.astream(input_data, session_id="user_john"):
+    if event["type"] == "interrupt":
+        print("Payment halted. Waiting for human approval...")
+
+# Resume from checkpoint using identical session_id
+g.arun(None, session_id="user_john")
+```
+
+---
+
+## 📊 Observability Dashboard & Persistence
+
+Flowk effortlessly saves run-histories exactly as they mutate across node transactions.
+
+```python
+# Native Memory Configurations
+g = Graph()                                         # Ephemeral RAM
+g = Graph(checkpoint_db="local_traces.db")          # SQLite Storage
+g = Graph(checkpoint_db="redis://localhost:6379/0") # Redis
+```
+
+Spin up the native **Streamlit Time-Machine Dashboard** to review these checkpoints visually without relying on generic SaaS providers:
+```bash
+flowk ui
+```
+
+---
+
+## 📦 Multi-Agent Composition
+
+Build powerful hierarchical orchestrations by compiling smaller sub-graphs and mounting them identically as nodes within a massive supervisor pipeline.
+
+```python
+# Internal Research Graph
+research_graph = Graph()
+research_graph.connect(search_web, summarize)
+
+# Packaged perfectly as a Node
+research_node = research_graph.as_node(state_key="research_metadata")
+
+# Plugged into Chief Editor Agent
 main_graph = Graph()
-# Use it as a node with isolated state scoping!
-research_node = research_subgraph.as_node(state_key="research_data")
-main_graph.connect(input_node, research_node)
-```
-
-### 🗄️ Scalable Redis Persistence
-For enterprise applications requiring distributed state, Flowk now supports Redis natively as a checkpointing backend.
-```python
-g = Graph(checkpoint_db="redis://localhost:6379/0")
+main_graph.connect(plan_outline, research_node)
 ```
 
 ---
 
-## 🧩 Plugins (Extensions)
-Flowk includes native plugins for popular LLM providers that capture token usage and costs automatically:
-- `OpenAIPlugin`
-- `AnthropicPlugin`
+## 🐞 Time Travel & Execution Telemetry
+
+If a run fails in production, you can trace exactly what inputs hit what nodes.
 
 ```python
+# Run your pipeline in debug mode
+g.debug("input", session_id="user_1")
+
+# Encountered a crash? Replay the precise global trajectory:
+g.replay("run_id_outputted_by_telemetry")
+
+# Track Cost Metrics via extensible Plugins
 from flowk.plugins.llm import OpenAIPlugin
+from flowk import MetricsRegistry
+
 PluginManager.register(OpenAIPlugin(model="gpt-4o"))
+print(MetricsRegistry.get_summary()) # => Evaluated 4040 tokens ($0.12)
 ```
-
----
-
-## 📦 Installation
-Install core:
-```bash
-pip install flowk
-```
-
-Install with optional enterprise features:
-```bash
-pip install "flowk[openai,redis]"
-```
-
----
-
-## 🛠️ Core Concepts

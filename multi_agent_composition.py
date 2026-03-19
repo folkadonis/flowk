@@ -1,7 +1,7 @@
 import asyncio
-from flowk import Graph
-from flowk.plugins.llm import OpenAIPlugin
-from flowk.metrics import MetricsRegistry
+from flowk import Graph  # pyre-ignore
+from flowk.plugins.llm import OpenAIPlugin  # pyre-ignore
+from flowk.metrics import MetricsRegistry  # pyre-ignore
 
 # 1. Define the Sub-Graph (Research Agent)
 research_graph = Graph()
@@ -22,7 +22,7 @@ research_graph.connect(search_web, summarize_info)
 main_graph = Graph()
 
 # Register OpenAI plugin to track simulated costs
-main_graph.checkpoint_db = "redis://localhost:6379/0" # Example usage (won't run without redis)
+main_graph.checkpoint_db = "flowk_test.db"
 
 @main_graph.node()
 async def plan_outline(topic: str):

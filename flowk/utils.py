@@ -1,7 +1,7 @@
 import logging
 import json
 
-def setup_logger(name="flowk"):
+def get_logger(name="flowk"):
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler()
@@ -11,7 +11,7 @@ def setup_logger(name="flowk"):
         logger.setLevel(logging.INFO)
     return logger
 
-logger = setup_logger()
+logger = get_logger()
 
 def serialize_for_log(data):
     try:
