@@ -220,12 +220,18 @@ This isolates complex pipelines without polluting supervisor-level logic domains
 
 ## 8. Observability (CLI, Time-Travel, Dashboard)
 
-### Flowk UI (Local Dashboard)
-Inspect run histories, trace logic changes, and debug global state permutations explicitly via our Streamlit UI.
+## **📊 Observability Dashboard:** Track sessions, visualize topology, and perform step-by-step state diffing through the local production-grade dashboard (`flowk ui`).
+Spin up the native **Production-Grade Dashboard** to review these checkpoints visually with interactive graph topology and state diffing:
 ```bash
 flowk ui
-# Operates at http://localhost:8501 pulling from SQLite local checkpoints
+# Launches at http://localhost:8502
 ```
+
+**Features:**
+- **Interactive Graph Visualization**: Real-time SVG rendering of your graph topology and execution paths.
+- **State Diff Engine**: Side-by-side comparison of global state snapshots between chaque node execution.
+- **Persistent Trace Storage**: Backed by the `StorageRegistry` (SQLite/Redis), allowing you to browse historical sessions and runs.
+- **Multi-Agent Tracing**: Detailed visibility into nested sub-graph executions.
 
 ### CLI Operations
 Render beautiful flow charts to your developer terminal before production to visually confirm structural intent:

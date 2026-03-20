@@ -93,7 +93,7 @@ class SequentialExecutor:
             PluginManager.on_node_end(run_id, node, output, state)  # pyre-ignore
 
             if status == "error":
-                StorageRegistry.save_trace(run_id, execution_trace)  # pyre-ignore
+                StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
                 if session_id:
                     MemoryStore.save_state(session_id, state.to_dict())  # pyre-ignore
                 raise RuntimeError(f"Execution failed at node '{current_node_name}': {error}")
@@ -120,7 +120,7 @@ class SequentialExecutor:
                     )
 
         total_duration = time.time() - start_time
-        StorageRegistry.save_trace(run_id, execution_trace)  # pyre-ignore
+        StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
         MetricsRegistry.record_run(total_duration)  # pyre-ignore
         PluginManager.on_run_end(run_id, self.graph, current_input)  # pyre-ignore
 
@@ -240,7 +240,7 @@ class AsyncExecutor:
             active_nodes = next_layer
 
         total_duration = time.time() - start_time
-        StorageRegistry.save_trace(run_id, execution_trace)  # pyre-ignore
+        StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
         MetricsRegistry.record_run(total_duration)  # pyre-ignore
         PluginManager.on_run_end(run_id, self.graph, None)  # pyre-ignore
 

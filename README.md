@@ -158,6 +158,8 @@ g.arun(None, session_id="user_john")
 
 ---
 
+---
+
 ## 📊 Observability Dashboard & Persistence
 
 Flowk effortlessly saves run-histories exactly as they mutate across node transactions.
@@ -169,10 +171,16 @@ g = Graph(checkpoint_db="local_traces.db")          # SQLite Storage
 g = Graph(checkpoint_db="redis://localhost:6379/0") # Redis
 ```
 
-Spin up the native **Streamlit Time-Machine Dashboard** to review these checkpoints visually without relying on generic SaaS providers:
+Spin up the native **Production-Grade Dashboard** (v2) to review these checkpoints visually with interactive graph topology and state diffing:
 ```bash
 flowk ui
+# Launches at http://localhost:8502
 ```
+
+The new dashboard provides:
+- **Interactive SVG Graphs**: Visualize your workflow logic and execution paths.
+- **State Diff Engine**: Compare state snapshots step-by-step.
+- **Session History**: Browse and resume historical agent runs from SQLite/Redis.
 
 ---
 

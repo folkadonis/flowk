@@ -146,6 +146,35 @@ class MemoryStore:
             cls._sessions.clear()
 
     # ------------------------------------------------------------------
+    # UI / Observability
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def list_sessions(cls) -> Dict[str, dict]:
+        """Return all persisted sessions and their latest states."""
+        redis_client: Any = cls._redis_client
+        if redis_client is not None:
+            keys = redis_client.keys("flowk:session:*")
+            sessions = {}
+            for key in keys:
+                s_id = key.decode("utf-8").replace("flowk:session:", "")
+                raw = redis_client.get(key)
+                sessions[s_id] = json.loads(raw) if raw else {}
+            return sessions
+
+        db_path: Optional[str] = cls._db_path
+        if db_path is not None:
+            sessions = {}
+            with sqlite3.connect(db_path) as conn:
+                rows = conn.execute("SELECT id, state FROM sessions").fetchall()
+                for row in rows:
+                    sessions[row[0]] = json.loads(row[1])
+            return sessions
+
+        # In-memory fallback
+        return cls._sessions.copy()
+
+    # ------------------------------------------------------------------
     # Convenience
     # ------------------------------------------------------------------
 
