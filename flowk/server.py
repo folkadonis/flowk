@@ -32,14 +32,22 @@ def create_app(graph: Any) -> Any:
     # ------------------------------------------------------------------
     # Static UI Assets
     # ------------------------------------------------------------------
-    ui_dist = os.path.join(os.path.dirname(__file__), "ui", "v2", "dist")
+    ui_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "ui", "v2", "dist"))
+    print(f"📂 UI Assets Directory: {ui_dist}")
     
     if os.path.exists(ui_dist):
+        print("✅ UI Assets found. Registering routes.")
         app.mount("/assets", StaticFiles(directory=os.path.join(ui_dist, "assets")), name="assets")
 
         @app.get("/")
         async def serve_ui():
-            return FileResponse(os.path.join(ui_dist, "index.html"))
+            index_path = os.path.join(ui_dist, "index.html")
+            if not os.path.exists(index_path):
+                print(f"❌ index.html NOT FOUND at {index_path}")
+                raise HTTPException(status_code=404, detail="index.html not found")
+            return FileResponse(index_path)
+    else:
+        print(f"❌ UI Assets NOT FOUND at {ui_dist}")
 
     @app.post("/invoke")  # pyre-ignore
     async def invoke(request: Request) -> dict:  # pyre-ignore
