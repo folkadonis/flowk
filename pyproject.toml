@@ -39,3 +39,11 @@ flowk = "flowk.cli:main"
 [project.urls]
 "Homepage" = "https://github.com/folkadonis/flowk"
 "Bug Tracker" = "https://github.com/folkadonis/flowk/issues"
+
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+flowk = ["ui/v2/dist/**/*", "ui/v2/dist/*"]
+
