@@ -29,7 +29,9 @@ class Graph:
 
         if checkpoint_db:
             from flowk.memory import MemoryStore  # pyre-ignore
+            from flowk.storage import StorageRegistry
             MemoryStore.configure(checkpoint_db)
+            StorageRegistry.configure(checkpoint_db)
 
     # ------------------------------------------------------------------
     # Node registration
@@ -167,6 +169,19 @@ class Graph:
                     raise RuntimeError(
                         f"Edge compilation error: Target node '{target}' from '{source}' does not exist."
                     )
+        
+        # Persist topology for UI observability
+        from flowk.storage import StorageRegistry
+        nodes = [{"id": n.name, "name": n.name, "type": "agent" if "agent" in n.name.lower() else "node"} for n in self.nodes.values()]
+        edges = []
+        for src, targets in self.edges.items():
+            for tgt in targets:
+                edges.append({"source": src, "target": tgt, "type": "flow"})
+        for src, mapping in self.routes.items():
+            for val, tgt in mapping.items():
+                edges.append({"source": src, "target": tgt, "type": "route", "label": str(val)})
+        
+        StorageRegistry.save_graph("default", {"nodes": nodes, "edges": edges})
 
         self.interrupt_before = interrupt_before if interrupt_before is not None else []  # pyre-ignore
         self.compiled = True

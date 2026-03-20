@@ -10,16 +10,24 @@ def main():
     command = sys.argv[1]
     
     if command == "ui":
-        # Launch streamlit dashboard
+        # Launch production-grade v2 dashboard
         try:
-            import streamlit  # pyre-ignore
+            from fastapi import FastAPI
+            import uvicorn
         except ImportError:
-            print("Streamlit is not installed. Run 'pip install flowk[ui]' to enable the dashboard.")
+            print("FastAPI and Uvicorn are required for the v2 dashboard. Run 'pip install flowk[api]'")
             sys.exit(1)
             
-        ui_path = os.path.join(os.path.dirname(__file__), "ui", "dashboard.py")
-        print("🌊 Starting Flowk Observability Dashboard...")
-        subprocess.run(["streamlit", "run", ui_path])
+        from flowk import Graph
+        from flowk.server import create_app
+        
+        # Create a dummy graph to host the dashboard if none is provided
+        # It will still serve the /ui/sessions etc. from the global memory store
+        dummy_graph = Graph(checkpoint_db="flowk_memory.db")
+        app = create_app(dummy_graph)
+        
+        print("🔥 Starting Flowk Production Dashboard (v2)...")
+        uvicorn.run(app, host="127.0.0.1", port=8502)
     else:
         print(f"Unknown command: {command}")
 
