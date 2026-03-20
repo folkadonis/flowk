@@ -3,8 +3,10 @@ from typing import Any, Optional
 
 try:
     from fastapi import FastAPI, Request, HTTPException  # pyre-ignore
-    from fastapi.responses import StreamingResponse  # pyre-ignore
+    from fastapi.responses import StreamingResponse, FileResponse  # pyre-ignore
+    from fastapi.staticfiles import StaticFiles  # pyre-ignore
     import uvicorn  # pyre-ignore
+    import os
     _fastapi_available = True
 except ImportError:
     _fastapi_available = False
@@ -26,6 +28,26 @@ def create_app(graph: Any) -> Any:
         description="Auto-generated API for your Flowk Agent",
         version="0.3.0",
     )
+
+    # ------------------------------------------------------------------
+    # Static UI Assets
+    # ------------------------------------------------------------------
+    ui_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "ui", "v2", "dist"))
+    print(f"📂 UI Assets Directory: {ui_dist}")
+    
+    if os.path.exists(ui_dist):
+        print("✅ UI Assets found. Registering routes.")
+        app.mount("/assets", StaticFiles(directory=os.path.join(ui_dist, "assets")), name="assets")
+
+        @app.get("/")
+        async def serve_ui():
+            index_path = os.path.join(ui_dist, "index.html")
+            if not os.path.exists(index_path):
+                print(f"❌ index.html NOT FOUND at {index_path}")
+                raise HTTPException(status_code=404, detail="index.html not found")
+            return FileResponse(index_path)
+    else:
+        print(f"❌ UI Assets NOT FOUND at {ui_dist}")
 
     @app.post("/invoke")  # pyre-ignore
     async def invoke(request: Request) -> dict:  # pyre-ignore
@@ -71,5 +93,57 @@ def create_app(graph: Any) -> Any:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")  # pyre-ignore
+
+    # ------------------------------------------------------------------
+    # UI / Observability Endpoints
+    # ------------------------------------------------------------------
+
+    @app.get("/ui/sessions")
+    async def get_sessions():
+        """List all active sessions and their latest state snapshots."""
+        from flowk.memory import MemoryStore
+        return MemoryStore.list_sessions()
+
+    @app.get("/ui/runs")
+    async def get_runs(session_id: Optional[str] = None):
+        """List all recorded execution run IDs, optional filter by session."""
+        from flowk.storage import StorageRegistry
+        return StorageRegistry.list_runs(session_id=session_id)
+
+    @app.get("/ui/session/{session_id}/runs")
+    async def get_session_runs(session_id: str):
+        """List all run IDs for a specific session."""
+        from flowk.storage import StorageRegistry
+        return StorageRegistry.list_runs(session_id=session_id)
+
+    @app.get("/ui/run/{run_id}")
+    async def get_run_trace(run_id: str):
+        """Retrieve the full step-by-step execution trace for a specific run."""
+        from flowk.storage import StorageRegistry
+        try:
+            return StorageRegistry.get_trace(run_id)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=str(e))
+
+    @app.get("/ui/graph")
+    async def get_graph():
+        """Export graph topology for UI visualization."""
+        from flowk.storage import StorageRegistry
+        
+        # Try finding persisted graph first if local graph is dummy
+        if not graph.nodes:
+            persisted = StorageRegistry.get_graph("default")
+            if persisted:
+                return persisted
+
+        nodes = [{"id": n.name, "name": n.name, "type": "agent" if "agent" in n.name.lower() else "node"} for n in graph.nodes.values()]
+        edges = []
+        for src, targets in graph.edges.items():
+            for tgt in targets:
+                edges.append({"source": src, "target": tgt, "type": "flow"})
+        for src, mapping in graph.routes.items():
+            for val, tgt in mapping.items():
+                edges.append({"source": src, "target": tgt, "type": "route", "label": str(val)})
+        return {"nodes": nodes, "edges": edges}
 
     return app
