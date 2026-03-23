@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowk"
-version = "0.4.0"
+version = "0.4.1"
 authors = [
   { name="Folk Nallathambi", email="folkadonis7@gmail.com" },
 ]
@@ -40,8 +40,10 @@ flowk = "flowk.cli:main"
 "Homepage" = "https://github.com/folkadonis/flowk"
 "Bug Tracker" = "https://github.com/folkadonis/flowk/issues"
 
+
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.package-data]
 flowk = ["ui/v2/dist/**/*", "ui/v2/dist/*"]
+
