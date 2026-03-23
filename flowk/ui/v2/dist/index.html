@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+    <title>Flowk | Production Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-DRXqb3Os.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Bjsbh09k.css">
+  </head>
+  <body>
+    <div class="app-container">
+      <aside class="sidebar">
+        <div class="logo">
+          <span class="logo-emoji">🌊</span>
+          <h1>Flowk <span>UI</span></h1>
+        </div>
+        
+        <div class="session-label">History Sessions</div>
+        <div class="session-list" id="session-list">
+          <!-- Sessions will be injected here -->
+        </div>
+
+        <div class="session-label" style="margin-top: 2rem;">Run History</div>
+        <div class="session-list" id="run-list">
+          <div class="session-item" style="opacity: 0.5;">Select a session...</div>
+        </div>
+      </aside>
+
+      <main class="dashboard-main">
+        <header>
+          <div id="active-session-info">
+            <h2 id="current-session-id">No Session Selected</h2>
+            <p id="current-run-id" style="font-size: 0.8rem; color: var(--text-secondary);">Select a run to view details</p>
+          </div>
+          <div class="stats">
+            <div class="stat-item">
+              <span class="stat-value" id="node-count">0</span>
+              <span class="stat-label">Nodes</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="run-time">0ms</span>
+              <span class="stat-label">Duration</span>
+            </div>
+          </div>
+        </header>
+
+        <nav class="tabs">
+          <button class="tab-btn active" data-tab="graph">Graph</button>
+          <button class="tab-btn" data-tab="trace">Trace</button>
+          <button class="tab-btn" data-tab="events">Event Log</button>
+          <button class="tab-btn" data-tab="state">State Diff</button>
+        </nav>
+
+        <section id="content-area">
+          <div class="tab-content active" id="tab-graph">
+            <div id="graph-container">
+              <svg id="graph-svg">
+                <defs>
+                  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="20" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="rgba(255,255,255,0.2)" />
+                  </marker>
+                </defs>
+                <g id="edges-layer"></g>
+                <g id="nodes-layer"></g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-trace">
+            <div class="trace-list" id="trace-list">
+              <!-- Trace steps injected here -->
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-events">
+            <div class="event-timeline" id="event-timeline">
+              <div class="text-secondary" style="padding: 2rem;">No events recorded.</div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-state">
+            <div id="diff-viewer">
+              <pre id="diff-content" class="text-secondary" style="font-size: 0.85rem; padding: 1rem;">Select a step to see state changes</pre>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+  </body>
+</html>
