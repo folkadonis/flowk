@@ -12,14 +12,21 @@ class StorageRegistry:
     @classmethod
     def configure(cls, connection_string: Optional[str] = None) -> None:
         """Set up the persistence backend for traces."""
+        import os
+        
+        # Default to .flowk/flowk.db if no connection string is provided
         if not connection_string:
-            return
+            connection_string = os.path.join(os.getcwd(), ".flowk", "flowk.db")
 
         if connection_string.startswith("redis://"):
             import redis
             cls._redis_client = redis.from_url(connection_string)
         else:
             cls._db_path = connection_string
+            db_dir = os.path.dirname(connection_string)
+            if db_dir and not os.path.exists(db_dir):
+                os.makedirs(db_dir, exist_ok=True)
+                
             with sqlite3.connect(connection_string) as conn:
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS runs "
@@ -28,6 +35,10 @@ class StorageRegistry:
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS graphs "
                     "(id TEXT PRIMARY KEY, data TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS events "
+                    "(id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, session_id TEXT, node TEXT, type TEXT, data TEXT, timestamp REAL)"
                 )
 
     @classmethod
@@ -117,6 +128,60 @@ class StorageRegistry:
         return None
 
     @classmethod
+    def save_event(cls, run_id: str, event_type: str, node: Optional[str], data: Any, session_id: Optional[str] = None):
+        """Record a discrete execution event (Event Sourcing)."""
+        import time
+        event = {
+            "run_id": run_id,
+            "session_id": session_id,
+            "node": node,
+            "type": event_type,
+            "data": data,
+            "timestamp": time.time()
+        }
+
+        redis_client: Any = cls._redis_client
+        if redis_client is not None:
+            redis_client.rpush(f"flowk:events:{run_id}", json.dumps(event))
+            return
+
+        db_path: Optional[str] = cls._db_path
+        if db_path is not None:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "INSERT INTO events (run_id, session_id, node, type, data, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                    (run_id, session_id, node, event_type, json.dumps(data), event["timestamp"])
+                )
+            return
+
+        # In-memory fallback
+        if "events" not in cls._traces:
+            cls._traces["events"] = []  # pyre-ignore
+        cls._traces["events"].append(event)  # pyre-ignore
+
+    @classmethod
+    def get_events(cls, run_id: str) -> List[Dict[str, Any]]:
+        """Retrieve all events for a specific run."""
+        redis_client: Any = cls._redis_client
+        if redis_client is not None:
+            raw_events = redis_client.lrange(f"flowk:events:{run_id}", 0, -1)
+            return [json.loads(e) for e in raw_events]
+
+        db_path: Optional[str] = cls._db_path
+        if db_path is not None:
+            with sqlite3.connect(db_path) as conn:
+                rows = conn.execute(
+                    "SELECT run_id, session_id, node, type, data, timestamp FROM events WHERE run_id = ? ORDER BY id ASC",
+                    (run_id,)
+                ).fetchall()
+                return [
+                    {"run_id": r[0], "session_id": r[1], "node": r[2], "type": r[3], "data": json.loads(r[4]), "timestamp": r[5]}
+                    for r in rows
+                ]
+
+        return [e for e in cls._traces.get("events", []) if e["run_id"] == run_id]
+
+    @classmethod
     def clear(cls):
-        """Clear all in-memory traces."""
+        """Clear all in-memory traces and events."""
         cls._traces.clear()

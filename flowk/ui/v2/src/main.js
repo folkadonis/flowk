@@ -4,15 +4,20 @@ import './style.css';
 let graphData = { nodes: [], edges: [], entrypoint: null };
 let sessions = {};
 let currentSessionId = null;
+let currentRunId = null;
 let currentRunTrace = [];
+let currentEvents = [];
 
 // DOM Elements
 const sessionList = document.getElementById('session-list');
+const runList = document.getElementById('run-list');
 const nodesLayer = document.getElementById('nodes-layer');
 const edgesLayer = document.getElementById('edges-layer');
 const traceList = document.getElementById('trace-list');
+const eventTimeline = document.getElementById('event-timeline');
 const diffContent = document.getElementById('diff-content');
 const currentSessionTitle = document.getElementById('current-session-id');
+const currentRunTitle = document.getElementById('current-run-id');
 const nodeCountStat = document.getElementById('node-count');
 const runTimeStat = document.getElementById('run-time');
 
@@ -31,27 +36,61 @@ async function fetchData(endpoint) {
 }
 
 async function init() {
+  setupTabs();
+  await refreshRegistry();
+  
+  // Refresh loop for dev mode
+  setInterval(refreshRegistry, 5000);
+}
+
+async function refreshRegistry() {
+  const oldSessionsCount = Object.keys(sessions).length;
   graphData = await fetchData('/ui/graph') || graphData;
   sessions = await fetchData('/ui/sessions') || {};
   
   renderGraph();
   renderSessionList();
+  
+  // If we just got our first session, auto-select it
+  if (oldSessionsCount === 0 && Object.keys(sessions).length > 0) {
+    selectSession(Object.keys(sessions)[0]);
+  }
 }
 
 // ------------------------------------------------------------------
-// Rendering: Sessions
+// Tabs
+// ------------------------------------------------------------------
+
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      const tabId = `tab-${btn.dataset.tab}`;
+      document.getElementById(tabId).classList.add('active');
+      
+      if (btn.dataset.tab === 'graph') renderGraph();
+    };
+  });
+}
+
+// ------------------------------------------------------------------
+// Rendering: Sessions & Runs
 // ------------------------------------------------------------------
 
 function renderSessionList() {
+  const activeId = currentSessionId;
   sessionList.innerHTML = '';
-  Object.keys(sessions).forEach(id => {
+  Object.keys(sessions).sort((a,b) => b.localeCompare(a)).forEach(id => {
     const item = document.createElement('div');
-    item.className = `session-item ${id === currentSessionId ? 'active' : ''}`;
+    item.className = `session-item ${id === activeId ? 'active' : ''}`;
     item.onclick = () => selectSession(id);
     
     item.innerHTML = `
       <span class="session-id">${id}</span>
-      <span class="session-meta">Nodes: ${Object.keys(sessions[id]).length} keys in state</span>
+      <span class="session-meta">Global State Session</span>
     `;
     sessionList.appendChild(item);
   });
@@ -59,28 +98,57 @@ function renderSessionList() {
 
 async function selectSession(id) {
   currentSessionId = id;
-  currentSessionTitle.innerText = id;
+  currentSessionTitle.innerText = `Session: ${id}`;
   renderSessionList();
   
-  // Fetch runs specifically for THIS session
   const runs = await fetchData(`/ui/session/${id}/runs`);
+  renderRunList(runs || []);
+  
   if (runs && runs.length > 0) {
-    // Picking the latest run for this session
-    const runId = runs[runs.length - 1];
-    const trace = await fetchData(`/ui/run/${runId}`);
-    if (trace) {
-      currentRunTrace = trace;
-      renderTrace();
-      updateStats();
-      
-      // Auto-select latest step
-      selectStep(currentRunTrace.length - 1);
-    }
-  } else {
-    currentRunTrace = [];
-    renderTrace();
-    updateStats();
-    diffContent.innerHTML = '<div class="text-secondary">No traces found for this session</div>';
+    selectRun(runs[runs.length - 1]);
+  }
+}
+
+function renderRunList(runs) {
+  runList.innerHTML = '';
+  if (runs.length === 0) {
+    runList.innerHTML = '<div class="session-item" style="opacity: 0.5;">No runs yet...</div>';
+    return;
+  }
+
+  runs.slice().reverse().forEach(runId => {
+    const item = document.createElement('div');
+    item.className = `session-item ${runId === currentRunId ? 'active' : ''}`;
+    item.onclick = () => selectRun(runId);
+    
+    item.innerHTML = `
+      <span class="session-id" title="${runId}">${runId.substring(0, 18)}...</span>
+      <span class="session-meta">Run Unit</span>
+    `;
+    runList.appendChild(item);
+  });
+}
+
+async function selectRun(runId) {
+  currentRunId = runId;
+  currentRunTitle.innerText = `Run ID: ${runId}`;
+  
+  // Re-render run list to show active
+  const runs = await fetchData(`/ui/session/${currentSessionId}/runs`);
+  renderRunList(runs || []);
+
+  const trace = await fetchData(`/ui/run/${runId}`);
+  const events = await fetchData(`/ui/run/${runId}/events`);
+  
+  currentRunTrace = trace || [];
+  currentEvents = events || [];
+  
+  renderTrace();
+  renderEvents();
+  updateStats();
+  
+  if (currentRunTrace.length > 0) {
+    selectStep(currentRunTrace.length - 1);
   }
 }
 
@@ -89,19 +157,25 @@ function updateStats() {
   if (currentRunTrace.length > 0) {
     const totalDuration = currentRunTrace.reduce((acc, step) => acc + (step.duration || 0), 0);
     runTimeStat.innerText = (totalDuration * 1000).toFixed(0) + 'ms';
+  } else {
+    runTimeStat.innerText = '0ms';
   }
 }
 
 // ------------------------------------------------------------------
-// Rendering: Graph (Simple Circular Layout)
+// Rendering: Graph
 // ------------------------------------------------------------------
 
 function renderGraph() {
   nodesLayer.innerHTML = '';
   edgesLayer.innerHTML = '';
   
-  const width = document.getElementById('graph-container').clientWidth;
-  const height = document.getElementById('graph-container').clientHeight;
+  const container = document.getElementById('graph-container');
+  if (!container) return;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  if (width === 0) return;
+
   const centerX = width / 2;
   const centerY = height / 2;
   const radius = Math.min(width, height) / 3;
@@ -121,7 +195,7 @@ function renderGraph() {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('cx', x);
     circle.setAttribute('cy', y);
-    circle.setAttribute('r', node.type === 'llm_router' ? 40 : 35);
+    circle.setAttribute('r', 35);
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', x);
@@ -149,11 +223,15 @@ function renderGraph() {
 }
 
 // ------------------------------------------------------------------
-// Rendering: Trace & Diffs
+// Rendering: Trace & Events
 // ------------------------------------------------------------------
 
 function renderTrace() {
   traceList.innerHTML = '';
+  if (currentRunTrace.length === 0) {
+    traceList.innerHTML = '<div class="text-secondary" style="padding: 2rem;">No trace data for this run.</div>';
+    return;
+  }
   currentRunTrace.forEach((step, i) => {
     const item = document.createElement('div');
     item.className = 'trace-step';
@@ -172,10 +250,40 @@ function renderTrace() {
   });
 }
 
+function renderEvents() {
+    eventTimeline.innerHTML = '';
+    if (currentEvents.length === 0) {
+        eventTimeline.innerHTML = '<div class="text-secondary" style="padding: 2rem;">No event sourcing data.</div>';
+        return;
+    }
+    currentEvents.forEach(event => {
+        const item = document.createElement('div');
+        item.className = 'event-item';
+        const timeStr = new Date(event.timestamp * 1000).toLocaleTimeString();
+        
+        item.innerHTML = `
+            <div class="event-time">${timeStr}</div>
+            <div class="event-header">
+                <span class="event-type">${event.type}</span>
+                <span class="event-node">${event.node || ''}</span>
+            </div>
+            ${event.data ? `<pre>${JSON.stringify(event.data, null, 2)}</pre>` : ''}
+        `;
+        eventTimeline.appendChild(item);
+    });
+}
+
 function selectStep(index) {
-  // Highlight node in graph
+  // Reset highlights
   document.querySelectorAll('.node circle').forEach(c => c.style.stroke = 'var(--panel-border)');
+  document.querySelectorAll('.trace-step').forEach(s => s.classList.remove('active'));
+  
+  if (index < 0 || index >= currentRunTrace.length) return;
+
   const step = currentRunTrace[index];
+  const stepEls = document.querySelectorAll('.trace-step');
+  if (stepEls[index]) stepEls[index].classList.add('active');
+
   const nodeEl = document.getElementById(`node-${step.node}`);
   if (nodeEl) {
     nodeEl.querySelector('circle').style.stroke = 'var(--accent)';

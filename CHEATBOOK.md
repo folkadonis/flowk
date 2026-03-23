@@ -31,15 +31,17 @@ The central coordinator for building and executing workflows.
 ## 2. Advanced Features
 
 ### Persistence: `StorageRegistry` & `MemoryStore`
-Handled automatically when `checkpoint_db` is passed to `Graph()`.
+Handled automatically when `Graph()` evaluates its environment. Defaults implicitly to `.flowk/flowk.db`.
 
-- **SQLite**: `checkpoint_db="flow.db"`
+- **Default SQLite**: `.flowk/flowk.db`
+- **Custom SQLite**: `checkpoint_db="flow.db"`
 - **Redis**: `checkpoint_db="redis://localhost:6379/0"`
 
 | Method | Description |
 | :--- | :--- |
 | `StorageRegistry.get_trace(run_id)` | Retrieve raw execution trace. |
 | `StorageRegistry.list_runs(session_id=None)` | List historical run IDs. |
+| `StorageRegistry.get_events(run_id)` | Get the full immutable event sourcing log. |
 
 ### Metrics: `MetricsRegistry` & `PluginManager`
 Track token usage and execution performance.
@@ -55,7 +57,10 @@ Track token usage and execution performance.
 
 | Command | Description |
 | :--- | :--- |
-| `flowk ui` | Launch the **Production-Grade Dashboard** (v2) on port 8502. |
+| `flowk dev` | Launch the **Developer Environment** (API + Dashboard + Browser). |
+| `flowk ui` | Launch just the observation dashboard on port 8502. |
+| `flowk runs list` | List all available runs saved in the `.flowk/` store. |
+| `flowk runs inspect <id>` | Print the absolute event log timeline for a specified run. |
 | `flowk serve <file>:<graph>` | Serve a graph file as a FastAPI app. |
 
 ---

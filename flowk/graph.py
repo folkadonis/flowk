@@ -27,11 +27,10 @@ class Graph:
         self.interrupt_before: List[str] = []
         self.checkpoint_db: Optional[str] = checkpoint_db
 
-        if checkpoint_db:
-            from flowk.memory import MemoryStore  # pyre-ignore
-            from flowk.storage import StorageRegistry
-            MemoryStore.configure(checkpoint_db)
-            StorageRegistry.configure(checkpoint_db)
+        from flowk.memory import MemoryStore  # pyre-ignore
+        from flowk.storage import StorageRegistry
+        MemoryStore.configure(checkpoint_db)
+        StorageRegistry.configure(checkpoint_db)
 
     # ------------------------------------------------------------------
     # Node registration
@@ -198,6 +197,7 @@ class Graph:
     def run(
         self,
         input_data: Any = None,
+        run_id: Optional[str] = None,
         session_id: Optional[str] = None,
         initial_state: Optional[dict] = None,
     ) -> Any:
@@ -205,11 +205,12 @@ class Graph:
         self._ensure_compiled()
         from flowk.executor import SequentialExecutor  # pyre-ignore
         executor = SequentialExecutor(self)
-        return executor.execute(input_data, session_id=session_id, initial_state=initial_state)
+        return executor.execute(input_data, run_id=run_id, session_id=session_id, initial_state=initial_state)
 
     async def arun(
         self,
         input_data: Any = None,
+        run_id: Optional[str] = None,
         session_id: Optional[str] = None,
         initial_state: Optional[dict] = None,
     ) -> Any:
@@ -217,11 +218,12 @@ class Graph:
         self._ensure_compiled()
         from flowk.executor import AsyncExecutor  # pyre-ignore
         executor = AsyncExecutor(self)
-        return await executor.execute(input_data, session_id=session_id, initial_state=initial_state)
+        return await executor.execute(input_data, run_id=run_id, session_id=session_id, initial_state=initial_state)
 
     async def astream(
         self,
         input_data: Any = None,
+        run_id: Optional[str] = None,
         session_id: Optional[str] = None,
         initial_state: Optional[dict] = None,
     ):
@@ -229,7 +231,7 @@ class Graph:
         self._ensure_compiled()
         from flowk.executor import AsyncExecutor  # pyre-ignore
         executor = AsyncExecutor(self)
-        async for event in executor.astream(input_data, session_id=session_id, initial_state=initial_state):
+        async for event in executor.astream(input_data, run_id=run_id, session_id=session_id, initial_state=initial_state):
             yield event
 
     # ------------------------------------------------------------------

@@ -53,6 +53,7 @@ class SequentialExecutor:
         start_time = time.time()
 
         PluginManager.on_run_start(run_id, self.graph, current_input)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "run_start", None, {"input": current_input}, session_id=session_id)
         execution_trace: List[dict] = []
 
         while current_node_name:
@@ -63,6 +64,7 @@ class SequentialExecutor:
             node_start = time.time()
             logger.debug(f"Executing node: {current_node_name}")
             PluginManager.on_node_start(run_id, node, current_input, state)  # pyre-ignore
+            StorageRegistry.save_event(run_id, "node_start", current_node_name, {"input": current_input, "state": state.to_dict()}, session_id=session_id)
 
             output: Any = None
             status: str = "success"
@@ -91,9 +93,11 @@ class SequentialExecutor:
 
             MetricsRegistry.record_node_execution(current_node_name, node_duration)  # pyre-ignore
             PluginManager.on_node_end(run_id, node, output, state)  # pyre-ignore
+            StorageRegistry.save_event(run_id, "node_end", current_node_name, {"output": output, "state": state.to_dict(), "duration": node_duration, "status": status, "error": error}, session_id=session_id)
 
             if status == "error":
                 StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
+                StorageRegistry.save_event(run_id, "run_error", None, {"error": error}, session_id=session_id)
                 if session_id:
                     MemoryStore.save_state(session_id, state.to_dict())  # pyre-ignore
                 raise RuntimeError(f"Execution failed at node '{current_node_name}': {error}")
@@ -121,6 +125,7 @@ class SequentialExecutor:
 
         total_duration = time.time() - start_time
         StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "run_end", None, {"output": current_input, "duration": total_duration}, session_id=session_id)
         MetricsRegistry.record_run(total_duration)  # pyre-ignore
         PluginManager.on_run_end(run_id, self.graph, current_input)  # pyre-ignore
 
@@ -185,6 +190,7 @@ class AsyncExecutor:
         logger.info(f"Starting async execution run: {run_id} (Session: {session_id or 'Anonymous'})")
         start_time = time.time()
         PluginManager.on_run_start(run_id, self.graph, input_data)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "run_start", None, {"input": input_data}, session_id=session_id)
 
         while active_nodes:
             executable: List[Tuple[str, Any]] = []
@@ -200,11 +206,12 @@ class AsyncExecutor:
                 if interrupted:
                     if session_id:
                         MemoryStore.save_state(session_id, state.to_dict())  # pyre-ignore
+                    StorageRegistry.save_event(run_id, "run_interrupt", None, {"nodes": interrupted}, session_id=session_id)
                     yield {"type": "interrupt", "nodes": interrupted, "state": state.to_dict()}  # pyre-ignore
                 break
 
             tasks = [
-                self._arun_node(name, inp, state, run_id, execution_trace)  # pyre-ignore
+                self._arun_node(name, inp, state, run_id, execution_trace, session_id=session_id)  # pyre-ignore
                 for name, inp in executable
             ]
             results = await asyncio.gather(*tasks)
@@ -221,6 +228,7 @@ class AsyncExecutor:
                 if status == "error":
                     if session_id:
                         MemoryStore.save_state(session_id, state.to_dict())  # pyre-ignore
+                    StorageRegistry.save_event(run_id, "run_error", node_name, {"error": res.get("error")}, session_id=session_id)
                     raise RuntimeError(
                         f"Async execution failed at node '{node_name}': {res.get('error')}"
                     )
@@ -241,6 +249,7 @@ class AsyncExecutor:
 
         total_duration = time.time() - start_time
         StorageRegistry.save_trace(run_id, execution_trace, session_id=session_id)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "run_end", None, {"duration": total_duration}, session_id=session_id)
         MetricsRegistry.record_run(total_duration)  # pyre-ignore
         PluginManager.on_run_end(run_id, self.graph, None)  # pyre-ignore
 
@@ -256,6 +265,7 @@ class AsyncExecutor:
         state: "GraphState",
         run_id: str,
         execution_trace: List[dict],
+        session_id: Optional[str] = None,
     ) -> dict:
         node = self.graph.nodes.get(node_name)  # pyre-ignore
         if not node:
@@ -264,6 +274,7 @@ class AsyncExecutor:
         node_start = time.time()
         logger.debug(f"Async executing node: {node_name}")
         PluginManager.on_node_start(run_id, node, current_input, state)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "node_start", node_name, {"input": current_input, "state": state.to_dict()}, session_id=session_id)
 
         output: Any = None
         status: str = "success"
@@ -292,5 +303,6 @@ class AsyncExecutor:
 
         MetricsRegistry.record_node_execution(node_name, node_duration)  # pyre-ignore
         PluginManager.on_node_end(run_id, node, output, state)  # pyre-ignore
+        StorageRegistry.save_event(run_id, "node_end", node_name, {"output": output, "state": state.to_dict(), "duration": node_duration, "status": status, "error": error}, session_id=session_id)
 
         return {"node": node_name, "output": output, "status": status, "error": error}

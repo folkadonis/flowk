@@ -106,11 +106,11 @@ body {
 /* Main Content */
 .dashboard-main {
   flex: 1;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 1fr 400px;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   background: #000;
+  overflow: hidden;
 }
 
 header {
@@ -128,25 +128,100 @@ header h2 {
   font-weight: 600;
 }
 
-.stats {
+/* Tabs */
+.tabs {
   display: flex;
-  gap: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 0 1rem;
 }
 
-.stat-item {
-  text-align: center;
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 1rem 1.5rem;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
 }
 
-.stat-value {
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+#content-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.tab-content {
+  display: none;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.tab-content.active {
   display: block;
+}
+
+/* Event Timeline */
+.event-timeline {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.event-item {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.event-item .event-time {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  margin-bottom: 0.25rem;
+}
+
+.event-item .event-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.event-item .event-type {
   font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.event-item .event-node {
   color: var(--accent);
 }
 
-.stat-label {
-  font-size: 0.7rem;
+.event-item pre {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(0,0,0,0.3);
+  border-radius: 0.25rem;
   color: var(--text-secondary);
-  text-transform: uppercase;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Graph Section */
@@ -197,12 +272,8 @@ header h2 {
 }
 
 /* Tracing Section */
-#trace-panel {
-  background: var(--panel-bg);
-  border-left: 1px solid var(--panel-border);
-  display: flex;
-  flex-direction: column;
-  backdrop-filter: blur(8px);
+#tab-trace {
+  padding: 1rem;
 }
 
 .trace-title {

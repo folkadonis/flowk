@@ -220,21 +220,90 @@ This isolates complex pipelines without polluting supervisor-level logic domains
 
 ## 8. Observability (CLI, Time-Travel, Dashboard)
 
-## **📊 Observability Dashboard:** Track sessions, visualize topology, and perform step-by-step state diffing through the local production-grade dashboard (`flowk ui`).
+## **📊 Observability Dashboard:** Track sessions, visualize topology, and perform step-by-step state diffing through the local production-grade dashboard.
 Spin up the native **Production-Grade Dashboard** to review these checkpoints visually with interactive graph topology and state diffing:
 ```bash
-flowk ui
-# Launches at http://localhost:8502
+flowk dev
+# Launches API, dashboard, and opens http://localhost:8502 automatically
 ```
 
 **Features:**
 - **Interactive Graph Visualization**: Real-time SVG rendering of your graph topology and execution paths.
-- **State Diff Engine**: Side-by-side comparison of global state snapshots between chaque node execution.
-- **Persistent Trace Storage**: Backed by the `StorageRegistry` (SQLite/Redis), allowing you to browse historical sessions and runs.
+- **State Diff Engine**: Side-by-side comparison of global state snapshots between each node execution.
+- **Persistent Trace Storage**: Traces are saved automatically to `.flowk/flowk.db` for historical analysis.
+- **Event Sourcing**: Every node transition emits immutable events, providing a complete audit log of the execution lifecycle.
+
+#### Launching the Developer Environment
+```bash
+flowk dev
+```
+The dashboard runs on [http://127.0.0.1:8502](http://127.0.0.1:8502).
+
+---
+
+## 🌐 API Gateway Layer
+
+Flowk transforms your graph into a production-ready API via `g.serve()`.
+
+### Sync Execution
+```http
+POST /invoke
+Content-Type: application/json
+{
+  "input": "User input",
+  "session_id": "optional-uuid"
+}
+```
+
+### Async Execution (v1 Platform Feature)
+Trigger execution in the background and receive a `run_id` immediately.
+```http
+POST /async
+Content-Type: application/json
+{
+  "input": "User input",
+  "session_id": "optional-uuid"
+}
+```
+
+### Tracking Status
+Check the progress of a background run.
+```http
+GET /status/{run_id}
+```
+
+### Event Sourcing Logs
+Retrieve the full immutable event log for a specific run.
+```http
+GET /ui/run/{run_id}/events
+```
+
+### Streaming (SSE)
+```http
+POST /stream
+```
+Yields real-time events as they happen.
 - **Multi-Agent Tracing**: Detailed visibility into nested sub-graph executions.
 
 ### CLI Operations
-Render beautiful flow charts to your developer terminal before production to visually confirm structural intent:
+Flowk provides a suite of CLI tools to enhance the developer experience:
+
+**Local Live Development:**
+```bash
+flowk dev
+# Starts the background API, local React dashboard, and watches for changes.
+```
+
+**Historical Run Telemetry:**
+```bash
+flowk runs list
+# Output all captured historical run IDs from your project's .flowk directory.
+
+flowk runs inspect <run_id>
+# Output a precise timeline of Event Sourced activities for a specific execution.
+```
+
+**Terminal Topology Visualization:**
 ```python
 g.show()
 # Automatically DFS parses nodes to render ascii-art branching topologies.

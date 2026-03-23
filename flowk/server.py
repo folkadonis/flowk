@@ -94,6 +94,52 @@ def create_app(graph: Any) -> Any:
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")  # pyre-ignore
 
+    @app.post("/async")
+    async def invoke_async(request: Request) -> dict:
+        """
+        Trigger execution on a background task.
+        Returns the run_id immediately.
+        """
+        import uuid
+        import asyncio
+        data = await request.json()
+        input_data = data.get("input", None)
+        session_id = data.get("session_id", None)
+        initial_state = data.get("state", {})
+        run_id = str(uuid.uuid4())
+
+        # Start background task
+        asyncio.create_task(
+            graph.arun(
+                input_data=input_data,
+                run_id=run_id,
+                session_id=session_id,
+                initial_state=initial_state,
+            )
+        )
+
+        return {"status": "accepted", "run_id": run_id}
+
+    @app.get("/status/{run_id}")
+    async def get_status(run_id: str):
+        """Check the current status of a background run based on its latest events."""
+        from flowk.storage import StorageRegistry
+        events = StorageRegistry.get_events(run_id)
+        if not events:
+            # Check if it finished and was archived in trace
+            trace = StorageRegistry.get_trace(run_id)
+            if trace:
+                return {"status": "completed", "progress": "Execution archived"}
+            return {"status": "pending", "progress": "No events recorded yet"}
+        
+        last_event = events[-1]
+        return {
+            "status": "running" if last_event["type"] not in ["run_end", "run_error", "run_interrupt"] else "finished",
+            "last_node": last_event["node"],
+            "last_type": last_event["type"],
+            "timestamp": last_event["timestamp"]
+        }
+
     # ------------------------------------------------------------------
     # UI / Observability Endpoints
     # ------------------------------------------------------------------
@@ -145,5 +191,14 @@ def create_app(graph: Any) -> Any:
             for val, tgt in mapping.items():
                 edges.append({"source": src, "target": tgt, "type": "route", "label": str(val)})
         return {"nodes": nodes, "edges": edges}
+
+    @app.get("/ui/run/{run_id}/events")
+    async def get_run_events(run_id: str):
+        """Retrieve the immutable event log for a specific run (Event Sourcing)."""
+        from flowk.storage import StorageRegistry
+        try:
+            return StorageRegistry.get_events(run_id)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
     return app

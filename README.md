@@ -27,10 +27,11 @@ Everything you need to build Enterprise Agentic Workflows is packed into pure, r
 
 ### Developer Experience & Tooling
 - **🛑 Human-in-the-Loop:** Set breakpoints to pause execution and later resume the exact thread stacks.
-- **🚀 1-Click API Deployment:** Turn any Flowk `.py` into a fully typed FastAPI instance in milliseconds (`g.serve()`).
+- **🚀 1-Click Platform Deployment:** Turn any Flowk `.py` into a fully typed FastAPI instance (`g.serve()`) or spin up the full local workflow environment with `flowk dev`.
 - **Terminal Visualization:** Render beautiful CLI graphs of your execution layout (`g.show()`).
-- **Time Travel Replays:** Encounter a bug? Flowk traces everything. Replay historical executions in debug mode (`g.replay()`).
-- **📊 Observability Dashboard:** Track sessions and modify global Graph context visually through the local Streamlit dashboard (`flowk ui`).
+- **Time Travel Replays:** Encounter a bug? Flowk traces everything via Event Sourcing. Replay historical executions in debug mode (`g.replay()`).
+- **📊 Observability Dashboard:** Track sessions, step through State Diffs, and view the Event Log visually through the local React dashboard (`flowk dev` or `flowk ui`).
+- **CLI Telemetry:** Query your local `.flowk/flowk.db` persistence layer instantly using `flowk runs list` and `flowk runs inspect <run_id>`.
 - **🧩 Pluggable Metrics:** Hook models (e.g. OpenAIPlugin) into `MetricsRegistry` to precisely track token consumption and cost.
 
 ---
@@ -44,8 +45,8 @@ Flowk is modular by design.
 pip install flowk
 
 # Add-ons:
-pip install "flowk[api]"    # 1-Click FastAPI Deployment
-pip install "flowk[ui]"     # Streamlit Observability Dashboard
+pip install "flowk[api]"    # 1-Click FastAPI Deployment & Async Jobs
+pip install "flowk[ui]"     # React Observability Dashboard
 pip install "flowk[llm]"    # Auto-Router & Token Metrics
 pip install "flowk[redis]"  # Distributed Persistence
 
@@ -162,25 +163,26 @@ g.arun(None, session_id="user_john")
 
 ## 📊 Observability Dashboard & Persistence
 
-Flowk effortlessly saves run-histories exactly as they mutate across node transactions.
+Flowk effortlessly saves run-histories and execution events. By default, Flowk standardizes its local storage to a `.flowk/flowk.db` directory structure, automatically keeping your projects clean.
 
 ```python
 # Native Memory Configurations
-g = Graph()                                         # Ephemeral RAM
-g = Graph(checkpoint_db="local_traces.db")          # SQLite Storage
+g = Graph()                                         # Auto-creates .flowk/flowk.db
+g = Graph(checkpoint_db="local_traces.db")          # Custom SQLite Storage
 g = Graph(checkpoint_db="redis://localhost:6379/0") # Redis
 ```
 
-Spin up the native **Production-Grade Dashboard** (v2) to review these checkpoints visually with interactive graph topology and state diffing:
+Spin up the native **Production-Grade Dashboard** (v2) to review these checkpoints visually with interactive graph topology and state diffing. The recommended workflow is using the `dev` command to launch the API, the UI, and automatically open your browser:
 ```bash
-flowk ui
-# Launches at http://localhost:8502
+flowk dev
+# Automatically opens http://localhost:8502
 ```
 
 The new dashboard provides:
 - **Interactive SVG Graphs**: Visualize your workflow logic and execution paths.
-- **State Diff Engine**: Compare state snapshots step-by-step.
-- **Session History**: Browse and resume historical agent runs from SQLite/Redis.
+- **Event Sourcing Timeline**: See every immutable node transition as it happened.
+- **State Diff Engine**: Compare state snapshots perfectly step-by-step.
+- **Session History**: Browse and resume historical agent runs directly from SQLite/Redis.
 
 ---
 
