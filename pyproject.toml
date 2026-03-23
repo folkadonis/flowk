@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowk"
-version = "0.4.3"
+version = "0.4.4"
 authors = [
   { name="Folk Nallathambi", email="folkadonis7@gmail.com" },
 ]

@@ -2,13 +2,14 @@
 Flowk: A lightweight, modular, and extensible workflow orchestration engine for AI/LLM pipelines.
 """
 
-from flowk.graph import Graph
+from flowk.graph import Graph, FlowkGraph
 from flowk.exceptions import GraphError, NodeExecutionError, InvalidGraphError, ReplayError
 from flowk.state import GraphState
 from flowk.metrics import MetricsRegistry
 
 __all__ = [
     "Graph",
+    "FlowkGraph",
     "GraphState",
     "MetricsRegistry",
     "GraphError",
@@ -17,4 +18,4 @@ __all__ = [
     "ReplayError"
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.4.3"

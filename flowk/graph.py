@@ -314,5 +314,7 @@ class Graph:
             )
 
         app = create_app(self)
-        logger.info(f"🌐 Serving Flowk Graph on http://{host}:{port}")
         uvicorn.run(app, host=host, port=port)
+
+# Legacy architecture alias for backward compatibility
+FlowkGraph = Graph
