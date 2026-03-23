@@ -1,15 +1,24 @@
+from typing import Dict, List, Any
+
 class MetricsRegistry:
     """Singleton for tracking graph metrics incrementally across runs."""
-    _node_times = {}
-    _run_times = []
-    _token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-    _cost = 0.0
+    _node_times: Dict[str, List[float]] = {}
+    _node_failures: Dict[str, int] = {}
+    _run_times: List[float] = []
+    _token_usage: Dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    _cost: float = 0.0
 
     @classmethod
     def record_node_execution(cls, node_name: str, duration: float):
         if node_name not in cls._node_times:
             cls._node_times[node_name] = []
         cls._node_times[node_name].append(duration)
+
+    @classmethod
+    def record_node_error(cls, node_name: str):
+        if node_name not in cls._node_failures:
+            cls._node_failures[node_name] = 0
+        cls._node_failures[node_name] += 1
 
     @classmethod
     def record_run(cls, duration: float):
@@ -23,10 +32,10 @@ class MetricsRegistry:
         cls._cost += cost
 
     @classmethod
-    def get_summary(cls):
-        summary = {
+    def get_summary(cls) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {
             "total_runs": len(cls._run_times),
-            "avg_run_time": sum(cls._run_times)/len(cls._run_times) if cls._run_times else 0,
+            "avg_run_time": sum(cls._run_times)/len(cls._run_times) if cls._run_times else 0.0,
             "node_metrics": {},
             "llm_metrics": {
                 "tokens": dict(cls._token_usage),
@@ -34,15 +43,20 @@ class MetricsRegistry:
             }
         }
         for name, times in cls._node_times.items():
+            calls = len(times)
+            fails = cls._node_failures.get(name, 0)
             summary["node_metrics"][name] = {
-                "calls": len(times),
-                "avg_time": sum(times)/len(times)
+                "calls": calls,
+                "avg_time": sum(times)/calls if calls else 0,
+                "failures": fails,
+                "failure_rate": f"{(fails / calls * 100):.1f}%" if calls else "0.0%"
             }
         return summary
     
     @classmethod
     def clear(cls):
         cls._node_times.clear()
+        cls._node_failures.clear()
         cls._run_times.clear()
         cls._token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         cls._cost = 0.0

@@ -75,6 +75,7 @@ class SequentialExecutor:
             except Exception as e:
                 status = "error"
                 error = str(e)
+                MetricsRegistry.record_node_error(current_node_name)  # pyre-ignore
                 logger.error(f"Node execution failed: {e}")
 
             node_duration = time.time() - node_start
@@ -285,6 +286,7 @@ class AsyncExecutor:
         except Exception as e:
             status = "error"
             error = str(e)
+            MetricsRegistry.record_node_error(node_name)  # pyre-ignore
             logger.error(f"Node async execution failed: {e}")
 
         node_duration = time.time() - node_start
